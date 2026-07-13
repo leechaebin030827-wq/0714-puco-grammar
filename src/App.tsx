@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { RobotSimulator } from './components/RobotSimulator';
 
 interface CapabilityItem {
   code: string;
@@ -686,181 +687,195 @@ export default function App() {
 
       {/* Main Views Router */}
       {currentView === 'console' && (
-        <>
-          {/* Input Section Card */}
-          <section class="oneui-card">
-            <div class="input-section">
-              <div class="card-title">시나리오 입력</div>
-              <div class="textarea-wrapper">
-                <textarea
-                  class="scenario-textarea"
-                  placeholder="사용자가 [트리거]했을 때, 푸코가 [의도·감정]을 전달한다"
-                  value={scenarioText}
-                  onChange={(e) => setScenarioText(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-              <div class="helper-text">
-                <i class="fa-solid fa-circle-info"></i>
-                트리거와 의도를 함께 구체적으로 써주시면 매칭 정확도가 한층 더 향상됩니다.
-              </div>
-
-              <div class="presets-row">
-                {PRESET_SCENARIOS.map((preset, index) => (
-                  <button
-                    key={index}
-                    class="preset-pill-btn"
-                    onClick={() => {
-                      setScenarioText(preset.text);
-                      handleSynthesize(preset.text);
-                    }}
+        <div className="console-split-layout" style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1.2fr 1fr', 
+          gap: '20px', 
+          alignItems: 'start' 
+        }}>
+          {/* Left Column: Input and Results */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Input Section Card */}
+            <section class="oneui-card">
+              <div class="input-section">
+                <div class="card-title">시나리오 입력</div>
+                <div class="textarea-wrapper">
+                  <textarea
+                    class="scenario-textarea"
+                    placeholder="사용자가 [트리거]했을 때, 푸코가 [의도·감정]을 전달한다"
+                    value={scenarioText}
+                    onChange={(e) => setScenarioText(e.target.value)}
                     disabled={loading}
+                  />
+                </div>
+                <div class="helper-text">
+                  <i class="fa-solid fa-circle-info"></i>
+                  트리거와 의도를 함께 구체적으로 써주시면 매칭 정확도가 한층 더 향상됩니다.
+                </div>
+
+                <div class="presets-row">
+                  {PRESET_SCENARIOS.map((preset, index) => (
+                    <button
+                      key={index}
+                      class="preset-pill-btn"
+                      onClick={() => {
+                        setScenarioText(preset.text);
+                        handleSynthesize(preset.text);
+                      }}
+                      disabled={loading}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div class="btn-row">
+                  <button
+                    class="btn-primary"
+                    onClick={() => handleSynthesize()}
+                    disabled={loading || !scenarioText.trim() || !database}
                   >
-                    {preset.label}
+                    {loading ? '매칭 중...' : '매칭 실행'}
                   </button>
-                ))}
+                </div>
               </div>
+            </section>
 
-              <div class="btn-row">
-                <button
-                  class="btn-primary"
-                  onClick={() => handleSynthesize()}
-                  disabled={loading || !scenarioText.trim() || !database}
-                >
-                  {loading ? '매칭 중...' : '매칭 실행'}
-                </button>
+            {/* Loading & Errors */}
+            {loading && (
+              <div class="oneui-card loader-wrapper">
+                <div class="spinner"></div>
+                <div class="loading-text">상황에 맞는 최적의 캐퍼빌리티를 매칭하고 있습니다...</div>
               </div>
-            </div>
-          </section>
+            )}
 
-          {/* Loading & Errors */}
-          {loading && (
-            <div class="oneui-card loader-wrapper">
-              <div class="spinner"></div>
-              <div class="loading-text">상황에 맞는 최적의 캐퍼빌리티를 매칭하고 있습니다...</div>
-            </div>
-          )}
+            {error && (
+              <div class="oneui-card error-card">
+                <div style={{ fontWeight: 700, marginBottom: '4px' }}>매칭 실패</div>
+                <p>{error}</p>
+              </div>
+            )}
 
-          {error && (
-            <div class="oneui-card error-card">
-              <div style={{ fontWeight: 700, marginBottom: '4px' }}>매칭 실패</div>
-              <p>{error}</p>
-            </div>
-          )}
-
-          {/* Match Result Display */}
-          {!loading && matchResult && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              
-              {/* Missing Intent Notification */}
-              {matchResult.missingIntent && (
-                <div class="alert-banner">
-                  <i class="fa-solid fa-triangle-exclamation"></i>
-                  <div>
-                    <strong>상황 제안:</strong> {matchResult.intentNote}
+            {/* Match Result Display */}
+            {!loading && matchResult && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                
+                {/* Missing Intent Notification */}
+                {matchResult.missingIntent && (
+                  <div class="alert-banner">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                      <strong>상황 제안:</strong> {matchResult.intentNote}
+                    </div>
                   </div>
+                )}
+
+                {/* Combined Summary Card with Save Trigger */}
+                <div class="oneui-card summary-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                  <div>
+                    <div class="summary-title">전체 시나리오 요약</div>
+                    <div class="summary-text">"{matchResult.summary}"</div>
+                  </div>
+                  <button 
+                    class="btn-primary"
+                    onClick={handleSaveScenario}
+                    style={{ 
+                      background: 'var(--primary-light)', 
+                      color: 'var(--primary-color)',
+                      boxShadow: 'none',
+                      padding: '10px 20px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <i class="fa-solid fa-bookmark"></i>
+                    시나리오 저장
+                  </button>
                 </div>
-              )}
 
-              {/* Combined Summary Card with Save Trigger */}
-              <div class="oneui-card summary-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                <div>
-                  <div class="summary-title">전체 시나리오 요약</div>
-                  <div class="summary-text">"{matchResult.summary}"</div>
-                </div>
-                <button 
-                  class="btn-primary"
-                  onClick={handleSaveScenario}
-                  style={{ 
-                    background: 'var(--primary-light)', 
-                    color: 'var(--primary-color)',
-                    boxShadow: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '20px',
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <i class="fa-solid fa-bookmark"></i>
-                  시나리오 저장
-                </button>
-              </div>
+                {/* Capabilities Result Grid (Dynamically renders only active categories) */}
+                {(() => {
+                  const activePanels = [];
+                  if ((matchResult.SN || []).length > 0) {
+                    activePanels.push({ key: 'SN', name: '센서 감지', color: '#1463ff', badge: 'SN', list: matchResult.SN });
+                  }
+                  if ((matchResult.MP || []).length > 0) {
+                    activePanels.push({ key: 'MP', name: '모션 반응', color: '#d500f9', badge: 'MP', list: matchResult.MP });
+                  }
+                  if ((matchResult.PJ || []).length > 0) {
+                    activePanels.push({ key: 'PJ', name: '투사 반응', color: '#00c853', badge: 'PJ', list: matchResult.PJ });
+                  }
+                  if ((matchResult.SP || []).length > 0) {
+                    activePanels.push({ key: 'SP', name: '음향 반응', color: '#ff4081', badge: 'SP', list: matchResult.SP });
+                  }
 
-              {/* Capabilities Result Grid (Dynamically renders only active categories) */}
-              {(() => {
-                const activePanels = [];
-                if ((matchResult.SN || []).length > 0) {
-                  activePanels.push({ key: 'SN', name: '센서 감지', color: '#1463ff', badge: 'SN', list: matchResult.SN });
-                }
-                if ((matchResult.MP || []).length > 0) {
-                  activePanels.push({ key: 'MP', name: '모션 반응', color: '#d500f9', badge: 'MP', list: matchResult.MP });
-                }
-                if ((matchResult.PJ || []).length > 0) {
-                  activePanels.push({ key: 'PJ', name: '투사 반응', color: '#00c853', badge: 'PJ', list: matchResult.PJ });
-                }
-                if ((matchResult.SP || []).length > 0) {
-                  activePanels.push({ key: 'SP', name: '음향 반응', color: '#ff4081', badge: 'SP', list: matchResult.SP });
-                }
-
-                if (activePanels.length === 0) {
-                  return (
-                    <div class="oneui-card" style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-sub)' }}>
-                      <i class="fa-solid fa-circle-nodes" style={{ fontSize: '36px', color: 'var(--text-muted)', marginBottom: '16px', display: 'block' }}></i>
-                      <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
-                        활성화된 캐퍼빌리티가 없습니다
+                  if (activePanels.length === 0) {
+                    return (
+                      <div class="oneui-card" style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-sub)' }}>
+                        <i class="fa-solid fa-circle-nodes" style={{ fontSize: '36px', color: 'var(--text-muted)', marginBottom: '16px', display: 'block' }}></i>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
+                          활성화된 캐퍼빌리티가 없습니다
+                        </div>
+                        <p style={{ fontSize: '13px' }}>
+                          분석 결과 이 상황에서 매칭되는 필수 로봇 행동 조합이 없습니다. <br />
+                          트리거나 로봇이 행해야 하는 반응을 문장으로 구체화해서 다시 실행해보세요.
+                        </p>
                       </div>
-                      <p style={{ fontSize: '13px' }}>
-                        분석 결과 이 상황에서 매칭되는 필수 로봇 행동 조합이 없습니다. <br />
-                        트리거나 로봇이 행해야 하는 반응을 문장으로 구체화해서 다시 실행해보세요.
-                      </p>
+                    );
+                  }
+
+                  return (
+                    <div class="results-grid" style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr', // Stack vertically on split layout
+                      gap: '20px' 
+                    }}>
+                      {activePanels.map((panel) => (
+                        <div key={panel.key} class="oneui-card" style={{ borderTop: `4px solid ${panel.color}`, margin: 0 }}>
+                          <div class="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>
+                              {panel.name} <span class="code-font" style={{ color: panel.color }}>({panel.badge})</span>
+                            </span>
+                            <span class="panel-header-badge" style={{ background: `${panel.color}0a`, color: panel.color, border: `1px solid ${panel.color}1c` }}>
+                              {panel.list.length}건 활성화
+                            </span>
+                          </div>
+                          {panel.list.map((match) => {
+                            const detail = getCapabilityDetail(match.code);
+                            return (
+                              <div key={match.code} class="subcard" style={{ borderLeft: `3px solid ${panel.color}` }}>
+                                <div class="subcard-header">
+                                  <span class="code-pill" style={{ background: `${panel.color}0d`, color: panel.color, borderColor: `${panel.color}25` }}>{match.code}</span>
+                                  <span class="subcard-cat">{detail?.category || '기타'}</span>
+                                </div>
+                                <div class="subcard-name">{detail?.name || '정보 로딩 중...'}</div>
+                                <div class="subcard-desc">{detail?.desc}</div>
+                                <div class="subcard-reason-divider"></div>
+                                <div class="subcard-reason">
+                                  <span style={{ color: panel.color, marginRight: '6px' }}>●</span>
+                                  {match.reason}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
                     </div>
                   );
-                }
+                })()}
+              </div>
+            )}
+          </div>
 
-                return (
-                  <div class="results-grid" style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: activePanels.length === 1 ? '1fr' : activePanels.length === 3 ? 'repeat(auto-fit, minmax(300px, 1fr))' : '1fr 1fr',
-                    gap: '20px' 
-                  }}>
-                    {activePanels.map((panel) => (
-                      <div key={panel.key} class="oneui-card" style={{ borderTop: `4px solid ${panel.color}` }}>
-                        <div class="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span>
-                            {panel.name} <span class="code-font" style={{ color: panel.color }}>({panel.badge})</span>
-                          </span>
-                          <span class="panel-header-badge" style={{ background: `${panel.color}0a`, color: panel.color, border: `1px solid ${panel.color}1c` }}>
-                            {panel.list.length}건 활성화
-                          </span>
-                        </div>
-                        {panel.list.map((match) => {
-                          const detail = getCapabilityDetail(match.code);
-                          return (
-                            <div key={match.code} class="subcard" style={{ borderLeft: `3px solid ${panel.color}` }}>
-                              <div class="subcard-header">
-                                <span class="code-pill" style={{ background: `${panel.color}0d`, color: panel.color, borderColor: `${panel.color}25` }}>{match.code}</span>
-                                <span class="subcard-cat">{detail?.category || '기타'}</span>
-                              </div>
-                              <div class="subcard-name">{detail?.name || '정보 로딩 중...'}</div>
-                              <div class="subcard-desc">{detail?.desc}</div>
-                              <div class="subcard-reason-divider"></div>
-                              <div class="subcard-reason">
-                                <span style={{ color: panel.color, marginRight: '6px' }}>●</span>
-                                {match.reason}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-        </>
+          {/* Right Column: 3D Simulator Panel (sticky) */}
+          <div style={{ position: 'sticky', top: '24px' }} className="oneui-card">
+            <RobotSimulator activeMotionCode={matchResult?.MP?.[0]?.code || null} />
+          </div>
+
+        </div>
       )}
 
       {/* Saved Scenarios View */}
