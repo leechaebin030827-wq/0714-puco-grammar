@@ -154,19 +154,19 @@ export default function App() {
 
     loadSharedScenarios();
 
-    // Poll scenarios from server every 3 seconds for real-time multi-user syncing
+    // Poll scenarios from server every 5 seconds for real-time multi-user syncing
     const pollInterval = setInterval(() => {
       fetch('/api/scenarios')
         .then(res => {
           if (res.ok) return res.json();
-          throw new Error();
+          throw new Error("Temporary sync issue");
         })
         .then(data => {
           setSavedScenarios(data);
           localStorage.setItem('puko_saved_scenarios', JSON.stringify(data));
         })
-        .catch(() => { /* ignore polling errors when offline */ });
-    }, 3000);
+        .catch(() => { /* ignore 503 or offline errors to keep current local memory screen intact */ });
+    }, 5000);
 
     // 3. Load settings from localStorage
     const savedMode = localStorage.getItem('puko_settings_selectionMode');

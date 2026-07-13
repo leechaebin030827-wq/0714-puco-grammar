@@ -270,25 +270,42 @@ async function startServer() {
     res.json(capabilityDb);
   });
 
+  // Warm cache for scenarios to prevent empty resets during API limits
+  let serverScenariosCache = null;
+
   // 2.1 Fetch Shared Scenarios from Cloud Storage
   app.get('/api/scenarios', async (req, res) => {
     try {
       const response = await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea');
       if (response.ok) {
         const list = await response.json();
-        return res.json(list || []);
+        if (Array.isArray(list)) {
+          serverScenariosCache = list;
+          return res.json(list);
+        }
       }
       throw new Error("Cloud fetch status " + response.status);
     } catch (err) {
-      console.warn("Failed to fetch cloud scenarios, falling back to disk:", err.message);
+      console.warn("Failed to fetch cloud scenarios, checking cache/disk:", err.message);
+      
+      if (serverScenariosCache && serverScenariosCache.length > 0) {
+        return res.json(serverScenariosCache);
+      }
+
       try {
         const scenariosPath = path.join(__dirname, 'scenarios.json');
         if (fs.existsSync(scenariosPath)) {
           const data = fs.readFileSync(scenariosPath, 'utf-8');
-          return res.json(JSON.parse(data || '[]'));
+          const diskList = JSON.parse(data || '[]');
+          if (diskList && diskList.length > 0) {
+            serverScenariosCache = diskList;
+            return res.json(diskList);
+          }
         }
       } catch (e) {}
-      res.json([]);
+
+      // Return 503 so client retains their current local memory instead of clearing it to empty array
+      res.status(503).json({ error: "공유 데이터베이스 일시적 연결 장애" });
     }
   });
 
@@ -299,17 +316,29 @@ async function startServer() {
       
       // Fetch current list
       let current = [];
+      let fetchSuccess = false;
       try {
         const getRes = await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea');
         if (getRes.ok) {
-          current = await getRes.json();
+          const data = await getRes.json();
+          if (Array.isArray(data)) {
+            current = data;
+            fetchSuccess = true;
+          }
         }
       } catch (e) {
-        console.warn("Cloud read failed in post, falling back to disk:", e.message);
-        const scenariosPath = path.join(__dirname, 'scenarios.json');
-        if (fs.existsSync(scenariosPath)) {
-          const data = fs.readFileSync(scenariosPath, 'utf-8');
-          current = JSON.parse(data || '[]');
+        console.warn("Cloud read failed in post, using cache/disk:", e.message);
+      }
+
+      if (!fetchSuccess) {
+        if (serverScenariosCache && serverScenariosCache.length > 0) {
+          current = serverScenariosCache;
+        } else {
+          const scenariosPath = path.join(__dirname, 'scenarios.json');
+          if (fs.existsSync(scenariosPath)) {
+            const data = fs.readFileSync(scenariosPath, 'utf-8');
+            current = JSON.parse(data || '[]');
+          }
         }
       }
 
@@ -323,6 +352,8 @@ async function startServer() {
       } else if (action === 'set' && Array.isArray(list)) {
         current = list;
       }
+
+      serverScenariosCache = current;
 
       // Save to cloud
       try {
