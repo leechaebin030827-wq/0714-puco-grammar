@@ -270,31 +270,47 @@ async function startServer() {
     res.json(capabilityDb);
   });
 
-  // 2.1 Fetch Shared Scenarios
-  app.get('/api/scenarios', (req, res) => {
+  // 2.1 Fetch Shared Scenarios from Cloud Storage
+  app.get('/api/scenarios', async (req, res) => {
     try {
-      const scenariosPath = path.join(__dirname, 'scenarios.json');
-      if (fs.existsSync(scenariosPath)) {
-        const data = fs.readFileSync(scenariosPath, 'utf-8');
-        return res.json(JSON.parse(data || '[]'));
+      const response = await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea');
+      if (response.ok) {
+        const list = await response.json();
+        return res.json(list || []);
       }
-      res.json([]);
+      throw new Error("Cloud fetch status " + response.status);
     } catch (err) {
-      console.error("Failed to read scenarios database file:", err);
-      res.status(500).json({ error: `시나리오 조회 실패: ${err.message}` });
+      console.warn("Failed to fetch cloud scenarios, falling back to disk:", err.message);
+      try {
+        const scenariosPath = path.join(__dirname, 'scenarios.json');
+        if (fs.existsSync(scenariosPath)) {
+          const data = fs.readFileSync(scenariosPath, 'utf-8');
+          return res.json(JSON.parse(data || '[]'));
+        }
+      } catch (e) {}
+      res.json([]);
     }
   });
 
-  // 2.2 Save/Update/Delete Shared Scenarios
-  app.post('/api/scenarios', (req, res) => {
+  // 2.2 Save/Update/Delete Shared Scenarios in Cloud Storage
+  app.post('/api/scenarios', async (req, res) => {
     try {
-      const scenariosPath = path.join(__dirname, 'scenarios.json');
       const { action, scenario, id, list } = req.body;
       
+      // Fetch current list
       let current = [];
-      if (fs.existsSync(scenariosPath)) {
-        const data = fs.readFileSync(scenariosPath, 'utf-8');
-        current = JSON.parse(data || '[]');
+      try {
+        const getRes = await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea');
+        if (getRes.ok) {
+          current = await getRes.json();
+        }
+      } catch (e) {
+        console.warn("Cloud read failed in post, falling back to disk:", e.message);
+        const scenariosPath = path.join(__dirname, 'scenarios.json');
+        if (fs.existsSync(scenariosPath)) {
+          const data = fs.readFileSync(scenariosPath, 'utf-8');
+          current = JSON.parse(data || '[]');
+        }
       }
 
       if (action === 'save' && scenario) {
@@ -308,10 +324,29 @@ async function startServer() {
         current = list;
       }
 
-      fs.writeFileSync(scenariosPath, JSON.stringify(current, null, 2), 'utf-8');
+      // Save to cloud
+      try {
+        await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Security-key': 'yoon-puko-1234'
+          },
+          body: JSON.stringify(current)
+        });
+      } catch (e) {
+        console.warn("Cloud write failed in post, saving only to disk:", e.message);
+      }
+
+      // Keep disk file sync
+      try {
+        const scenariosPath = path.join(__dirname, 'scenarios.json');
+        fs.writeFileSync(scenariosPath, JSON.stringify(current, null, 2), 'utf-8');
+      } catch (e) {}
+
       res.json(current);
     } catch (err) {
-      console.error("Failed to write scenarios database file:", err);
+      console.error("Failed to update scenarios database file:", err);
       res.status(500).json({ error: `시나리오 저장 실패: ${err.message}` });
     }
   });

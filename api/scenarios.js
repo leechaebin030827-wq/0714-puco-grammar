@@ -1,57 +1,56 @@
 import fs from 'fs';
 import path from 'path';
 
-// Ephemeral in-memory fallback for Vercel serverless containers
-let memoryScenarios = [];
-
 export default async function handler(req, res) {
   const dbPath = path.join(process.cwd(), 'scenarios.json');
 
-  const getScenarios = () => {
+  const getScenarios = async () => {
+    try {
+      const response = await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea');
+      if (response.ok) {
+        const list = await response.json();
+        return list || [];
+      }
+    } catch (e) {
+      console.warn("Cloud read failed in serverless, falling back to local file:", e.message);
+    }
+    // Fallback to local scenarios.json
     try {
       if (fs.existsSync(dbPath)) {
         const data = fs.readFileSync(dbPath, 'utf-8');
-        const fileList = JSON.parse(data || '[]');
-        
-        // Merge file list and memory scenarios to sync
-        const merged = [...fileList, ...memoryScenarios];
-        
-        // Unique by id (deduplicate)
-        const seen = new Set();
-        const unique = [];
-        for (const item of merged) {
-          if (item && item.id && !seen.has(item.id)) {
-            seen.add(item.id);
-            unique.push(item);
-          }
-        }
-        // Sort by ID (timestamp desc)
-        return unique.sort((a, b) => b.id.localeCompare(a.id));
+        return JSON.parse(data || '[]');
       }
-    } catch (e) {
-      console.warn("Read scenarios.json failed (normal in clean serverless states):", e.message);
-    }
-    return memoryScenarios.sort((a, b) => b.id.localeCompare(a.id));
+    } catch (e) {}
+    return [];
   };
 
-  const saveScenarios = (list) => {
-    memoryScenarios = list;
+  const saveScenarios = async (list) => {
+    try {
+      await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Security-key': 'yoon-puko-1234'
+        },
+        body: JSON.stringify(list)
+      });
+    } catch (e) {
+      console.warn("Cloud write failed in serverless:", e.message);
+    }
+    // Best-effort local file write (fails gracefully on Vercel read-only)
     try {
       fs.writeFileSync(dbPath, JSON.stringify(list, null, 2), 'utf-8');
-      return true;
-    } catch (e) {
-      console.warn("Write scenarios.json failed (normal on Vercel Serverless):", e.message);
-      return false; 
-    }
+    } catch (e) {}
   };
 
   if (req.method === 'GET') {
-    return res.status(200).json(getScenarios());
+    const list = await getScenarios();
+    return res.status(200).json(list);
   }
 
   if (req.method === 'POST') {
     const { action, scenario, id, list } = req.body;
-    let current = getScenarios();
+    let current = await getScenarios();
 
     if (action === 'save' && scenario) {
       const exists = current.some(s => s.scenarioText.trim() === scenario.scenarioText.trim() && JSON.stringify(s.result.summary) === JSON.stringify(scenario.result.summary));
@@ -64,7 +63,7 @@ export default async function handler(req, res) {
       current = list;
     }
 
-    saveScenarios(current);
+    await saveScenarios(current);
     return res.status(200).json(current);
   }
 
