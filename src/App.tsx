@@ -90,32 +90,46 @@ export default function App() {
 
   // Load database and saved scenarios on mount
   useEffect(() => {
-    // 1. Fetch capability database
-    fetch('/api/database')
-      .then(res => {
-        if (!res.ok) throw new Error("데이터베이스 로드 실패");
-        return res.json();
-      })
-      .then(data => {
-        // Enforce default properties (keywords, enabled)
-        const normalize = (items: CapabilityItem[]) => 
-          items.map(item => ({
-            ...item,
-            keywords: item.keywords || "",
-            enabled: item.enabled === undefined ? true : item.enabled
-          }));
-        
-        setDatabase({
-          SN: normalize(data.SN || []),
-          MP: normalize(data.MP || []),
-          PJ: normalize(data.PJ || []),
-          SP: normalize(data.SP || [])
+    // 1. Check localStorage first for customized database
+    const localDbStr = localStorage.getItem('puko_custom_database');
+    if (localDbStr) {
+      try {
+        const parsed = JSON.parse(localDbStr);
+        setDatabase(parsed);
+      } catch (e) {
+        console.error("Failed to parse custom database from localStorage", e);
+      }
+    }
+
+    // 2. Fetch original database from server if localStorage is empty
+    if (!localDbStr) {
+      fetch('/api/database')
+        .then(res => {
+          if (!res.ok) throw new Error("데이터베이스 로드 실패");
+          return res.json();
+        })
+        .then(data => {
+          const normalize = (items: CapabilityItem[]) => 
+            items.map(item => ({
+              ...item,
+              keywords: item.keywords || "",
+              enabled: item.enabled === undefined ? true : item.enabled
+            }));
+          
+          const normalizedDb = {
+            SN: normalize(data.SN || []),
+            MP: normalize(data.MP || []),
+            PJ: normalize(data.PJ || []),
+            SP: normalize(data.SP || [])
+          };
+          setDatabase(normalizedDb);
+          localStorage.setItem('puko_custom_database', JSON.stringify(normalizedDb));
+        })
+        .catch(err => {
+          console.error(err);
+          setError("데이터베이스를 읽어오지 못했습니다. 서버 상태를 확인해주세요.");
         });
-      })
-      .catch(err => {
-        console.error(err);
-        setError("데이터베이스를 읽어오지 못했습니다. 서버 상태를 확인해주세요.");
-      });
+    }
 
     // 2. Load saved scenarios from localStorage
     const saved = localStorage.getItem('puko_saved_scenarios');
@@ -401,22 +415,22 @@ export default function App() {
     // Sort array by code alphabetically
     dbCopy[targetKey].sort((a, b) => a.code.localeCompare(b.code));
 
+    localStorage.setItem('puko_custom_database', JSON.stringify(dbCopy));
+    setDatabase(dbCopy);
+
     try {
       // Save back to server
-      const saveRes = await fetch('/api/database', {
+      await fetch('/api/database', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dbCopy)
       });
-
-      if (!saveRes.ok) throw new Error("서버 저장에 실패했습니다.");
-      
-      setDatabase(dbCopy);
       setShowAddEditModal(false);
       alert("캐퍼빌리티 정보가 성공적으로 반영되었습니다!");
     } catch (err: any) {
-      console.error(err);
-      alert(`저장 실패: ${err.message}`);
+      console.warn("Server write fallback active:", err.message);
+      setShowAddEditModal(false);
+      alert("캐퍼빌리티 정보가 로컬 스토리지에 성공적으로 반영되었습니다!");
     }
   };
 
@@ -441,20 +455,19 @@ export default function App() {
       SP: database.SP.filter(i => i.code !== item.code)
     };
 
+    localStorage.setItem('puko_custom_database', JSON.stringify(dbCopy));
+    setDatabase(dbCopy);
+
     try {
-      const saveRes = await fetch('/api/database', {
+      await fetch('/api/database', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dbCopy)
       });
-
-      if (!saveRes.ok) throw new Error("서버 저장 실패");
-
-      setDatabase(dbCopy);
       alert("성공적으로 삭제되었습니다.");
     } catch (err: any) {
-      console.error(err);
-      alert(`삭제 실패: ${err.message}`);
+      console.warn("Server delete fallback active:", err.message);
+      alert("로컬 캐시에서 성공적으로 삭제되었습니다.");
     }
   };
 
@@ -554,23 +567,59 @@ export default function App() {
         dbCopy.PJ.sort((a, b) => a.code.localeCompare(b.code));
         dbCopy.SP.sort((a, b) => a.code.localeCompare(b.code));
 
-        // Save back to server
-        const saveRes = await fetch('/api/database', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dbCopy)
-        });
-
-        if (!saveRes.ok) throw new Error("서버 저장 중 오류 발생");
-
+        localStorage.setItem('puko_custom_database', JSON.stringify(dbCopy));
         setDatabase(dbCopy);
-        alert(`CSV 업로드 성공!\n새로운 캐퍼빌리티 ${addedCount}건 추가, ${updatedCount}건 정보 갱신 완료.`);
+
+        try {
+          // Save back to server
+          await fetch('/api/database', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dbCopy)
+          });
+          alert(`CSV 업로드 성공!\n새로운 캐퍼빌리티 ${addedCount}건 추가, ${updatedCount}건 정보 갱신 완료.`);
+        } catch (serverErr: any) {
+          console.warn("Server CSV upload fallback active:", serverErr.message);
+          alert(`CSV 업로드 성공!\n새로운 캐퍼빌리티 ${addedCount}건 추가, ${updatedCount}건 정보가 로컬 스토리지에 갱신 완료되었습니다.`);
+        }
       } catch (err: any) {
         console.error(err);
         alert(`CSV 파싱 오류: ${err.message}`);
       }
     };
     reader.readAsText(file, 'utf-8');
+  };
+
+  // Reset Capability Database to default
+  const handleResetDatabase = async () => {
+    if (!confirm("데이터베이스를 공장 초기화하시겠습니까? (로컬 수정한 데이터가 지워집니다)")) return;
+
+    localStorage.removeItem('puko_custom_database');
+    try {
+      const res = await fetch('/api/database');
+      if (!res.ok) throw new Error("초기 데이터 로딩 실패");
+      const data = await res.json();
+      
+      const normalize = (items: CapabilityItem[]) => 
+        items.map(item => ({
+          ...item,
+          keywords: item.keywords || "",
+          enabled: item.enabled === undefined ? true : item.enabled
+        }));
+      
+      const normalizedDb = {
+        SN: normalize(data.SN || []),
+        MP: normalize(data.MP || []),
+        PJ: normalize(data.PJ || []),
+        SP: normalize(data.SP || [])
+      };
+      setDatabase(normalizedDb);
+      localStorage.setItem('puko_custom_database', JSON.stringify(normalizedDb));
+      alert("데이터베이스가 성공적으로 서버 초기 상태로 복구되었습니다!");
+    } catch (err: any) {
+      console.error(err);
+      alert(`초기화 실패: ${err.message}`);
+    }
   };
 
   return (
@@ -1231,6 +1280,26 @@ export default function App() {
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* 4. Reset Database Section */}
+          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
+                데이터베이스 초기화 (Reset Database)
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-sub)' }}>
+                추가하거나 커스텀 편집했던 모든 캐퍼빌리티 정보를 서버 빌트인 초기 스펙 상태로 복원합니다.
+              </p>
+            </div>
+            <button 
+              class="btn-primary"
+              onClick={handleResetDatabase}
+              style={{ background: 'rgba(255, 59, 48, 0.08)', color: '#ff3b30', boxShadow: 'none', padding: '10px 20px', borderRadius: '18px', fontSize: '13px' }}
+            >
+              <i class="fa-solid fa-arrow-rotate-left" style={{ marginRight: '6px' }}></i>
+              스펙 초기화 실행
+            </button>
           </div>
         </section>
       )}
