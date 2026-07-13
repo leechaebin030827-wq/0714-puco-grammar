@@ -270,115 +270,85 @@ async function startServer() {
     res.json(capabilityDb);
   });
 
-  // Warm cache for scenarios to prevent empty resets during API limits
-  let serverScenariosCache = null;
+  // ===== 시나리오 저장소: 메모리 캐시 + 파일 기반 (외부 API 없음) =====
+  // 서버 메모리를 주 저장소로 사용 (빠르고 신뢰성 높음)
+  // 파일은 서버 재시작 시 복원용 백업으로만 사용
+  const SCENARIOS_PATH = path.join(__dirname, 'scenarios.json');
+  const MAX_SCENARIOS = 500; // 최대 500개까지 저장
 
-  // 2.1 Fetch Shared Scenarios from Cloud Storage
-  app.get('/api/scenarios', async (req, res) => {
-    try {
-      const response = await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea');
-      if (response.ok) {
-        const list = await response.json();
-        if (Array.isArray(list)) {
-          serverScenariosCache = list;
-          return res.json(list);
-        }
+  // 파일에서 초기 데이터 로드
+  let serverScenariosCache = [];
+  let writeInProgress = false;
+  let pendingWrite = false;
+
+  try {
+    if (fs.existsSync(SCENARIOS_PATH)) {
+      const raw = fs.readFileSync(SCENARIOS_PATH, 'utf-8');
+      const parsed = JSON.parse(raw || '[]');
+      if (Array.isArray(parsed)) {
+        serverScenariosCache = parsed;
+        console.log(`시나리오 ${serverScenariosCache.length}개 로드 완료 (파일에서 복원)`);
       }
-      throw new Error("Cloud fetch status " + response.status);
-    } catch (err) {
-      console.warn("Failed to fetch cloud scenarios, checking cache/disk:", err.message);
-      
-      if (serverScenariosCache && serverScenariosCache.length > 0) {
-        return res.json(serverScenariosCache);
-      }
-
-      try {
-        const scenariosPath = path.join(__dirname, 'scenarios.json');
-        if (fs.existsSync(scenariosPath)) {
-          const data = fs.readFileSync(scenariosPath, 'utf-8');
-          const diskList = JSON.parse(data || '[]');
-          if (diskList && diskList.length > 0) {
-            serverScenariosCache = diskList;
-            return res.json(diskList);
-          }
-        }
-      } catch (e) {}
-
-      // Return 503 so client retains their current local memory instead of clearing it to empty array
-      res.status(503).json({ error: "공유 데이터베이스 일시적 연결 장애" });
     }
+  } catch (e) {
+    console.warn('scenarios.json 로드 실패, 빈 배열로 시작:', e.message);
+    serverScenariosCache = [];
+  }
+
+  // 비동기 파일 쓰기 (write coalescing으로 race condition 방지)
+  const flushToDisk = async (data) => {
+    if (writeInProgress) {
+      pendingWrite = true;
+      return;
+    }
+    writeInProgress = true;
+    try {
+      fs.writeFileSync(SCENARIOS_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('scenarios.json 쓰기 실패:', e.message);
+    } finally {
+      writeInProgress = false;
+      if (pendingWrite) {
+        pendingWrite = false;
+        await flushToDisk(serverScenariosCache);
+      }
+    }
+  };
+
+  // GET /api/scenarios - 현재 저장된 시나리오 목록 반환
+  app.get('/api/scenarios', (req, res) => {
+    // 메모리 캐시를 직접 반환 (항상 최신, 외부 API 호출 없음)
+    res.json(serverScenariosCache);
   });
 
-  // 2.2 Save/Update/Delete Shared Scenarios in Cloud Storage
+  // POST /api/scenarios - 시나리오 추가/삭제
   app.post('/api/scenarios', async (req, res) => {
     try {
-      const { action, scenario, id, list } = req.body;
-      
-      // Fetch current list
-      let current = [];
-      let fetchSuccess = false;
-      try {
-        const getRes = await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea');
-        if (getRes.ok) {
-          const data = await getRes.json();
-          if (Array.isArray(data)) {
-            current = data;
-            fetchSuccess = true;
-          }
-        }
-      } catch (e) {
-        console.warn("Cloud read failed in post, using cache/disk:", e.message);
-      }
-
-      if (!fetchSuccess) {
-        if (serverScenariosCache && serverScenariosCache.length > 0) {
-          current = serverScenariosCache;
-        } else {
-          const scenariosPath = path.join(__dirname, 'scenarios.json');
-          if (fs.existsSync(scenariosPath)) {
-            const data = fs.readFileSync(scenariosPath, 'utf-8');
-            current = JSON.parse(data || '[]');
-          }
-        }
-      }
+      const { action, scenario, id } = req.body;
 
       if (action === 'save' && scenario) {
-        const exists = current.some(s => s.scenarioText.trim() === scenario.scenarioText.trim() && JSON.stringify(s.result.summary) === JSON.stringify(scenario.result.summary));
+        // 중복 체크
+        const exists = serverScenariosCache.some(
+          s => s.id === scenario.id || 
+          (s.scenarioText && scenario.scenarioText && 
+           s.scenarioText.trim() === scenario.scenarioText.trim() && 
+           JSON.stringify(s.result?.summary) === JSON.stringify(scenario.result?.summary))
+        );
         if (!exists) {
-          current = [scenario, ...current];
+          // 새 항목을 맨 앞에 추가, 최대 MAX_SCENARIOS개 유지
+          serverScenariosCache = [scenario, ...serverScenariosCache].slice(0, MAX_SCENARIOS);
         }
       } else if (action === 'delete' && id) {
-        current = current.filter(s => s.id !== id);
-      } else if (action === 'set' && Array.isArray(list)) {
-        current = list;
+        serverScenariosCache = serverScenariosCache.filter(s => s.id !== id);
       }
 
-      serverScenariosCache = current;
+      // 비동기로 파일에 저장 (응답은 즉시 반환)
+      flushToDisk(serverScenariosCache);
 
-      // Save to cloud
-      try {
-        await fetch('https://extendsclass.com/api/json-storage/bin/eccbeea', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Security-key': 'yoon-puko-1234'
-          },
-          body: JSON.stringify(current)
-        });
-      } catch (e) {
-        console.warn("Cloud write failed in post, saving only to disk:", e.message);
-      }
-
-      // Keep disk file sync
-      try {
-        const scenariosPath = path.join(__dirname, 'scenarios.json');
-        fs.writeFileSync(scenariosPath, JSON.stringify(current, null, 2), 'utf-8');
-      } catch (e) {}
-
-      res.json(current);
+      res.json(serverScenariosCache);
     } catch (err) {
-      console.error("Failed to update scenarios database file:", err);
-      res.status(500).json({ error: `시나리오 저장 실패: ${err.message}` });
+      console.error('시나리오 처리 오류:', err);
+      res.status(500).json({ error: `시나리오 처리 실패: ${err.message}` });
     }
   });
 

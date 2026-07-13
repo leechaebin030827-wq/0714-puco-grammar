@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { RobotSimulator } from './components/RobotSimulator';
 
 interface CapabilityItem {
@@ -61,6 +61,7 @@ export default function App() {
   // Saved Scenarios State
   const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
   const [savedSearchQuery, setSavedSearchQuery] = useState("");
+  const lastServerCount = useRef<number>(-1); // 마지막으로 서버에서 받은 시나리오 수
   
   // Settings Panel States (stored in localStorage)
   const [selectionMode, setSelectionMode] = useState<'essential' | 'balanced' | 'detailed'>('essential');
@@ -88,6 +89,23 @@ export default function App() {
   const [formEnabled, setFormEnabled] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 서버 응답으로 시나리오 업데이트 (서버가 단일 진실 소스)
+  const updateScenariosFromServer = useCallback((serverList: SavedScenario[]) => {
+    if (!Array.isArray(serverList)) return;
+    // 빈 배열이 와도 로컬에 뭔가 있으면 무시 (서버 cold start 대비)
+    // 단, 로컬이 비어있거나 서버에 뭔가 있으면 업데이트
+    setSavedScenarios(prev => {
+      if (serverList.length === 0 && prev.length > 0) {
+        // 서버가 빈 배열인데 로컬에 데이터가 있으면 무시
+        return prev;
+      }
+      // 서버 데이터가 더 많거나 같으면 서버 데이터로 업데이트
+      localStorage.setItem('puko_saved_scenarios', JSON.stringify(serverList));
+      lastServerCount.current = serverList.length;
+      return serverList;
+    });
+  }, []);
 
   // Load database and saved scenarios on mount
   useEffect(() => {
@@ -132,7 +150,7 @@ export default function App() {
         });
     }
 
-    // 2. Load shared scenarios from server and setup background polling
+    // 3. Load shared scenarios from server and setup background polling
     const loadSharedScenarios = () => {
       fetch('/api/scenarios')
         .then(res => {
@@ -140,35 +158,35 @@ export default function App() {
           return res.json();
         })
         .then(data => {
-          setSavedScenarios(data);
-          localStorage.setItem('puko_saved_scenarios', JSON.stringify(data));
+          updateScenariosFromServer(data);
         })
         .catch(() => {
-          // Fallback to local storage on offline / init fail
+          // 서버 실패 시 로컬 스토리지에서 복원
           const savedLocal = localStorage.getItem('puko_saved_scenarios');
           if (savedLocal) {
-            try { setSavedScenarios(JSON.parse(savedLocal)); } catch(e){}
+            try {
+              setSavedScenarios(JSON.parse(savedLocal));
+            } catch (e) {}
           }
         });
     };
 
     loadSharedScenarios();
 
-    // Poll scenarios from server every 5 seconds for real-time multi-user syncing
+    // 3초마다 서버에서 최신 시나리오 폴링 (실시간 멀티유저 동기화)
     const pollInterval = setInterval(() => {
       fetch('/api/scenarios')
         .then(res => {
           if (res.ok) return res.json();
-          throw new Error("Temporary sync issue");
+          throw new Error('sync error');
         })
         .then(data => {
-          setSavedScenarios(data);
-          localStorage.setItem('puko_saved_scenarios', JSON.stringify(data));
+          updateScenariosFromServer(data);
         })
-        .catch(() => { /* ignore 503 or offline errors to keep current local memory screen intact */ });
-    }, 5000);
+        .catch(() => { /* 네트워크 오류 시 현재 상태 유지 */ });
+    }, 3000);
 
-    // 3. Load settings from localStorage
+    // 4. Load settings from localStorage
     const savedMode = localStorage.getItem('puko_settings_selectionMode');
     if (savedMode) setSelectionMode(savedMode as any);
     
@@ -193,7 +211,8 @@ export default function App() {
     return () => {
       clearInterval(pollInterval);
     };
-  }, []);
+  }, [updateScenariosFromServer]);
+
 
   // Sync settings helper
   const saveSetting = (key: string, value: any) => {
@@ -291,10 +310,12 @@ export default function App() {
       result: matchResult
     };
 
-    // Optimistically update locally
-    const updated = [newSaved, ...savedScenarios];
-    setSavedScenarios(updated);
-    localStorage.setItem('puko_saved_scenarios', JSON.stringify(updated));
+    // Optimistically update locally first
+    setSavedScenarios(prev => {
+      const updated = [newSaved, ...prev];
+      localStorage.setItem('puko_saved_scenarios', JSON.stringify(updated));
+      return updated;
+    });
 
     try {
       const res = await fetch('/api/scenarios', {
@@ -304,8 +325,11 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        setSavedScenarios(data);
-        localStorage.setItem('puko_saved_scenarios', JSON.stringify(data));
+        // 서버 응답으로 확정 업데이트 (빈 배열이면 로컬 유지)
+        if (data.length > 0) {
+          setSavedScenarios(data);
+          localStorage.setItem('puko_saved_scenarios', JSON.stringify(data));
+        }
       }
       alert("시나리오가 성공적으로 저장 및 실시간 공유되었습니다!");
     } catch (err) {
@@ -319,9 +343,12 @@ export default function App() {
     e.stopPropagation();
     if (!confirm("정말 이 시나리오를 삭제하시겠습니까?")) return;
 
-    const updated = savedScenarios.filter(s => s.id !== id);
-    setSavedScenarios(updated);
-    localStorage.setItem('puko_saved_scenarios', JSON.stringify(updated));
+    // 로컬에서 즉시 제거
+    setSavedScenarios(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      localStorage.setItem('puko_saved_scenarios', JSON.stringify(updated));
+      return updated;
+    });
 
     try {
       const res = await fetch('/api/scenarios', {
