@@ -31,7 +31,7 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
         else setAnalyzeError(true);
       } catch { setAnalyzeError(true); }
       finally { setAnalyzing(false); }
-    }, 800);
+    }, 1500);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [text]);
 

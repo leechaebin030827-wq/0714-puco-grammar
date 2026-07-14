@@ -145,12 +145,12 @@ export async function executeMatch(input, settings, database, apiKey) {
       }
     } catch (err) {
       console.error("Match Engine AI error:", err);
-      return executeLocalMatch(combinedInput, database);
+      return executeLocalMatch(combinedInput, database, err instanceof Error ? err.message : String(err));
     }
   }
 
   if (!success) {
-    return executeLocalMatch(combinedInput, database);
+    return executeLocalMatch(combinedInput, database, "AI 응답 파싱 실패 (3회 재시도 초과)");
   }
 
   return validateAndRecover(resultJSON, database, settings);
@@ -201,9 +201,20 @@ function validateAndRecover(json, db, settings) {
 }
 
 // Simple fallback matcher returning the new schema
-function executeLocalMatch(text, db) {
+function executeLocalMatch(text, db, errorReason = "") {
   const lowerText = text.toLowerCase();
   
+  let summaryText = "로컬 룰 기반 매칭 결과입니다. (API 키 미설정 또는 오류)";
+  let errorWarning = "AI 매칭에 실패하여 로컬 룰 엔진으로 임시 분석되었습니다.";
+
+  if (errorReason.includes("429")) {
+    summaryText = "API 요청 한도 초과 (429 Too Many Requests)로 인한 로컬 룰 매칭입니다.";
+    errorWarning = "Gemini API 무료 등급의 분당 요청 제한(15회)을 초과했습니다. 약 1분 후 다시 시도해 주세요.";
+  } else if (errorReason) {
+    summaryText = `AI 매칭 실패: ${errorReason}`;
+    errorWarning = `AI 호출 도중 오류가 발생했습니다: ${errorReason}`;
+  }
+
   const result = {
     interpretation: {
       scenario: "로컬 기본 상황",
@@ -214,8 +225,8 @@ function executeLocalMatch(text, db) {
     },
     capabilities: { SN: [], MP: [], PJ: [], SP: [] },
     sequence: [],
-    summary: "로컬 룰 기반 매칭 결과입니다. (API 키 미설정 또는 오류)",
-    warnings: ["AI 매칭에 실패하여 로컬 룰 엔진으로 임시 분석되었습니다."]
+    summary: summaryText,
+    warnings: [errorWarning]
   };
 
   let order = 1;
