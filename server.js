@@ -16,6 +16,38 @@ async function startServer() {
   const app = express();
   app.use(express.json({ limit: '5mb' }));
 
+  // API Route: /api/status
+  let cachedStatus = null;
+  app.get('/api/status', async (req, res) => {
+    const key = process.env.GEMINI_API_KEY;
+    if (!key || key.trim() === '') {
+      return res.json({ status: 'missing', message: 'API 키 미설정' });
+    }
+    if (cachedStatus) {
+      return res.json(cachedStatus);
+    }
+    try {
+      const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: 'ping' }] }] })
+      });
+      if (apiResponse.status === 429) {
+        return res.json({ status: 'rate_limited', message: 'API 한도 초과 (429)' });
+      }
+      if (!apiResponse.ok) {
+        const errData = await apiResponse.json().catch(() => ({}));
+        const msg = errData?.error?.message || `인증 오류 (${apiResponse.status})`;
+        return res.json({ status: 'error', message: msg });
+      }
+      cachedStatus = { status: 'configured', message: 'API 연결 성공' };
+      setTimeout(() => { cachedStatus = null; }, 10000); // cache for 10s
+      return res.json(cachedStatus);
+    } catch (err) {
+      return res.json({ status: 'error', message: '연결 실패' });
+    }
+  });
+
   const dbPath = path.resolve(__dirname, 'puco_capability_db.json');
 
   // API Route: /api/database

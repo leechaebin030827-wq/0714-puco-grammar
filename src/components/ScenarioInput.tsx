@@ -7,12 +7,34 @@ interface ScenarioInputProps {
   loading: boolean;
 }
 
+interface ApiStatus {
+  status: 'missing' | 'rate_limited' | 'configured' | 'error';
+  message: string;
+}
+
 export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
   const [text, setText] = useState("");
   const [analysis, setAnalysis] = useState<InputRequirementAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState(false);
+  const [apiStatus, setApiStatus] = useState<ApiStatus | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check API Status on load
+  useEffect(() => {
+    const checkApi = async () => {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        setApiStatus({ status: data.status, message: data.message });
+      } catch {
+        setApiStatus({ status: 'error', message: 'API 상태 확인 실패' });
+      }
+    };
+    checkApi();
+    const interval = setInterval(checkApi, 15000); // refresh status every 15s
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -45,6 +67,16 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
     return { icon: 'fa-circle text-gray-200', textClass: 'text-gray-400' };
   };
 
+  const getApiStatusBadge = () => {
+    if (!apiStatus) return 'bg-gray-100 text-gray-400';
+    switch (apiStatus.status) {
+      case 'configured': return 'bg-green-50 text-green-600 border-green-200';
+      case 'rate_limited': return 'bg-amber-50 text-amber-600 border-amber-200';
+      case 'missing': return 'bg-red-50 text-red-600 border-red-200';
+      default: return 'bg-red-50 text-red-600 border-red-200';
+    }
+  };
+
   const checks = [
     { key: 'scenario', label: '상황' },
     { key: 'stage', label: '현재 단계' },
@@ -52,21 +84,24 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-      {/* Title + Presets */}
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+      {/* Title + API Key Status */}
+      <div className="flex items-center justify-between">
         <p className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
           <i className="fa-solid fa-wand-magic-sparkles text-blue-400"></i>
           시나리오 입력
         </p>
-        <div className="flex gap-1.5 overflow-x-auto hide-scrollbar">
-          {PRESET_SCENARIOS.map((p, i) => (
-            <button key={i} onClick={() => setText(p.text)}
-              className="whitespace-nowrap text-[11px] px-2.5 py-1 rounded-lg bg-gray-50 hover:bg-blue-50 text-gray-500 hover:text-blue-600 border border-gray-200 transition-colors font-medium">
-              {p.label}
-            </button>
-          ))}
-        </div>
+        
+        {/* API Status Badge */}
+        {apiStatus && (
+          <span className={`text-[10px] font-bold border px-2 py-0.5 rounded-full flex items-center gap-1 ${getApiStatusBadge()}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              apiStatus.status === 'configured' ? 'bg-green-500' :
+              apiStatus.status === 'rate_limited' ? 'bg-amber-500' : 'bg-red-500'
+            }`}></span>
+            {apiStatus.message}
+          </span>
+        )}
       </div>
 
       {/* Textarea */}
@@ -78,8 +113,19 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
         className="w-full h-24 px-3.5 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none transition-all"
       />
 
+      {/* Presets list (moved down here) */}
+      <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1 border-b border-gray-50">
+        <span className="text-[10px] font-bold text-gray-300 shrink-0 uppercase tracking-wider">추천:</span>
+        {PRESET_SCENARIOS.map((p, i) => (
+          <button key={i} onClick={() => setText(p.text)}
+            className="whitespace-nowrap text-[11px] px-2.5 py-1 rounded-lg bg-gray-50 hover:bg-blue-50 text-gray-500 hover:text-blue-600 border border-gray-200 transition-colors font-medium">
+            {p.label}
+          </button>
+        ))}
+      </div>
+
       {/* Status row + Button */}
-      <div className="flex items-center justify-between mt-3 gap-3">
+      <div className="flex items-center justify-between gap-3 pt-1">
         {/* Check items */}
         <div className="flex items-center gap-3">
           {analyzing ? (
