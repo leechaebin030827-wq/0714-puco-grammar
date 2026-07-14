@@ -158,8 +158,8 @@ export default function App() {
                 {/* Interpretation */}
                 <InterpretationPanel interpretation={result.interpretation} />
 
-                {/* Capability cards — stacked list, empty ones hidden */}
-                <div className="bg-white rounded-xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
+                {/* Capability cards — 2-col grid, empty hidden */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {(['SN','MP','PJ','SP'] as const).map(type => {
                     const titles = { SN: 'Sensing', MP: 'Motion', PJ: 'Projection', SP: 'Speaker' };
                     const items = database![type].filter(i => result.capabilities[type].includes(i.code));

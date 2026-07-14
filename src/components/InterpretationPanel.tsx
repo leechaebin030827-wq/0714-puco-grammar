@@ -4,9 +4,9 @@ export function InterpretationPanel({ interpretation }: { interpretation: Interp
   if (!interpretation) return null;
 
   const rows = [
-    { label: 'Scenario',    value: interpretation.scenario,   dot: 'bg-violet-400' },
-    { label: 'Stage',       value: interpretation.stage,      dot: 'bg-violet-300' },
-    { label: 'Trigger',     value: interpretation.trigger,    dot: 'bg-blue-400' },
+    { label: 'Scenario', value: interpretation.scenario, dot: 'bg-violet-400' },
+    { label: 'Stage', value: interpretation.stage, dot: 'bg-violet-300' },
+    { label: 'Trigger', value: interpretation.trigger, dot: 'bg-blue-400' },
     { label: 'User Action', value: interpretation.userAction, dot: 'bg-blue-300' },
     { label: 'PUCO Intent', value: interpretation.pucoIntent, dot: 'bg-indigo-500', bold: true },
   ];
