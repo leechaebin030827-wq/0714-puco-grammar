@@ -61,6 +61,9 @@ Output strictly a single JSON object matching this schema:
     return JSON.parse(cleanedText);
   } catch (err) {
     console.error("AI Analysis failed, falling back to local:", err);
+    if (err instanceof Error && err.message.includes("429")) {
+      throw err; // propagate 429 to server.js
+    }
     return analyzeLocal(text);
   }
 }

@@ -17,35 +17,18 @@ async function startServer() {
   app.use(express.json({ limit: '5mb' }));
 
   // API Route: /api/status
-  let cachedStatus = null;
-  app.get('/api/status', async (req, res) => {
+  let rateLimitUntil = 0;
+
+  app.get('/api/status', (req, res) => {
     const key = process.env.GEMINI_API_KEY;
     if (!key || key.trim() === '') {
       return res.json({ status: 'missing', message: 'API 키 미설정' });
     }
-    if (cachedStatus) {
-      return res.json(cachedStatus);
+    if (Date.now() < rateLimitUntil) {
+      const remainSec = Math.ceil((rateLimitUntil - Date.now()) / 1000);
+      return res.json({ status: 'rate_limited', message: `한도 초과 (대기 ${remainSec}초)` });
     }
-    try {
-      const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: 'ping' }] }] })
-      });
-      if (apiResponse.status === 429) {
-        return res.json({ status: 'rate_limited', message: 'API 한도 초과 (429)' });
-      }
-      if (!apiResponse.ok) {
-        const errData = await apiResponse.json().catch(() => ({}));
-        const msg = errData?.error?.message || `인증 오류 (${apiResponse.status})`;
-        return res.json({ status: 'error', message: msg });
-      }
-      cachedStatus = { status: 'configured', message: 'API 연결 성공' };
-      setTimeout(() => { cachedStatus = null; }, 10000); // cache for 10s
-      return res.json(cachedStatus);
-    } catch (err) {
-      return res.json({ status: 'error', message: '연결 실패' });
-    }
+    return res.json({ status: 'configured', message: 'API 키 설정 완료' });
   });
 
   const dbPath = path.resolve(__dirname, 'puco_capability_db.json');
@@ -93,6 +76,9 @@ async function startServer() {
       res.status(200).json({ success: true, analysis });
     } catch (err) {
       console.error("Input Analysis Error:", err);
+      if (err instanceof Error && err.message.includes("429")) {
+        rateLimitUntil = Date.now() + 60000; // block for 60 seconds
+      }
       res.status(200).json({ 
         success: false, 
         analysis: {
@@ -133,6 +119,17 @@ async function startServer() {
       res.status(200).json(result);
     } catch (err) {
       console.error("Match Execution Error:", err);
+      if (err instanceof Error && err.message.includes("429")) {
+        rateLimitUntil = Date.now() + 60000;
+        // Import or directly run executeLocalMatch
+        try {
+          const { executeMatch: executeMatchImport } = await import('./src/server/matchEngine.js');
+          const localFallbackResult = await executeMatchImport(normalizedInput, settings, dbToUse, ""); // passing empty key forces local fallback
+          return res.status(200).json(localFallbackResult);
+        } catch (fallbackErr) {
+          return res.status(500).json({ error: "매칭 중 서버 오류가 발생했습니다." });
+        }
+      }
       res.status(500).json({ error: "매칭 중 서버 오류가 발생했습니다." });
     }
   });

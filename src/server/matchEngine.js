@@ -145,6 +145,9 @@ export async function executeMatch(input, settings, database, apiKey) {
       }
     } catch (err) {
       console.error("Match Engine AI error:", err);
+      if (err instanceof Error && err.message.includes("429")) {
+        throw err;
+      }
       return executeLocalMatch(combinedInput, database, err instanceof Error ? err.message : String(err));
     }
   }
