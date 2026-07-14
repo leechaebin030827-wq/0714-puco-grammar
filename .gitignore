@@ -3,6 +3,8 @@ node_modules/
 
 # Environment variables
 .env
+.env.*
+!.env.example
 
 # Production build artifacts
 dist/
@@ -10,4 +12,7 @@ dist/
 # System files
 .DS_Store
 Thumbs.db
-.vercel
+.vercel/
+
+# Logs
+*.log
