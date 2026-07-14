@@ -163,7 +163,6 @@ export default function App() {
                   {(['SN','MP','PJ','SP'] as const).map(type => {
                     const titles = { SN: 'Sensing', MP: 'Motion', PJ: 'Projection', SP: 'Speaker' };
                     const items = database![type].filter(i => result.capabilities[type].includes(i.code));
-                    if (items.length === 0) return null;
                     return (
                       <CapabilityCard
                         key={type}

@@ -27,10 +27,9 @@ const ROLE_COLORS: Record<string, string> = {
 
 export function CapabilityCard({ title, type, items, sequence }: CapabilityCardProps) {
   const cfg = TYPE_CONFIG[type];
-  if (items.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100">
         <i className={`fa-solid ${cfg.icon} text-xs ${cfg.accent}`}></i>
@@ -39,8 +38,8 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
       </div>
 
       {/* Items */}
-      <div className="divide-y divide-gray-50">
-        {items.map(item => {
+      <div className="divide-y divide-gray-50 flex-1 flex flex-col">
+        {items.length > 0 ? items.map(item => {
           const seqInfo = sequence.find(s => s.code === item.code);
           const roleColor = seqInfo ? (ROLE_COLORS[seqInfo.role] || 'text-gray-400') : '';
           return (
@@ -70,7 +69,12 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
               )}
             </div>
           );
-        })}
+        }) : (
+          <div className="flex-1 flex flex-col items-center justify-center py-8 text-gray-300 text-xs gap-1.5">
+            <i className="fa-solid fa-ghost text-xl opacity-40"></i>
+            <span>해당 능력 없음</span>
+          </div>
+        )}
       </div>
     </div>
   );
