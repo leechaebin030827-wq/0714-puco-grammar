@@ -158,20 +158,22 @@ export default function App() {
                 {/* Interpretation */}
                 <InterpretationPanel interpretation={result.interpretation} />
 
-                {/* Capability Cards - 4 col compact */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <CapabilityCard title="Sensing" type="SN"
-                    items={database!.SN.filter(i => result.capabilities.SN.includes(i.code))}
-                    sequence={result.sequence} />
-                  <CapabilityCard title="Motion" type="MP"
-                    items={database!.MP.filter(i => result.capabilities.MP.includes(i.code))}
-                    sequence={result.sequence} />
-                  <CapabilityCard title="Projection" type="PJ"
-                    items={database!.PJ.filter(i => result.capabilities.PJ.includes(i.code))}
-                    sequence={result.sequence} />
-                  <CapabilityCard title="Speaker" type="SP"
-                    items={database!.SP.filter(i => result.capabilities.SP.includes(i.code))}
-                    sequence={result.sequence} />
+                {/* Capability cards — stacked list, empty ones hidden */}
+                <div className="bg-white rounded-xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
+                  {(['SN','MP','PJ','SP'] as const).map(type => {
+                    const titles = { SN: 'Sensing', MP: 'Motion', PJ: 'Projection', SP: 'Speaker' };
+                    const items = database![type].filter(i => result.capabilities[type].includes(i.code));
+                    if (items.length === 0) return null;
+                    return (
+                      <CapabilityCard
+                        key={type}
+                        title={titles[type]}
+                        type={type}
+                        items={items}
+                        sequence={result.sequence}
+                      />
+                    );
+                  })}
                 </div>
 
                 {/* Behavior Sequence */}

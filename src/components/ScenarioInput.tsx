@@ -37,7 +37,7 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
 
   const getStatus = (key: string) => {
     if (!analysis) return { icon: 'fa-circle text-gray-200', textClass: 'text-gray-400' };
-    if (analysis.missing?.includes(key)) return { icon: 'fa-xmark text-red-400', textClass: 'text-red-500' };
+    if (analysis.missing?.includes(key as 'scenario' | 'stage' | 'interaction')) return { icon: 'fa-xmark text-red-400', textClass: 'text-red-500' };
     const detected = key === 'scenario' ? analysis.scenario?.detected
                    : key === 'stage' ? analysis.stage?.detected
                    : analysis.interaction?.detected;

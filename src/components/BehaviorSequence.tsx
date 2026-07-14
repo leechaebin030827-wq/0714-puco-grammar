@@ -6,24 +6,18 @@ interface BehaviorSequenceProps {
   database: CapabilityDatabase | null;
 }
 
-const ROLE_CONFIG: Record<string, string> = {
-  trigger:         'bg-emerald-100 text-emerald-700',
-  perception:      'bg-teal-100 text-teal-700',
-  acknowledgement: 'bg-blue-100 text-blue-700',
-  expression:      'bg-purple-100 text-purple-700',
-  action:          'bg-indigo-100 text-indigo-700',
-  feedback:        'bg-amber-100 text-amber-700',
-  recovery:        'bg-gray-100 text-gray-500',
+const ROLE_PILL: Record<string, string> = {
+  trigger:         'bg-emerald-50 text-emerald-600 border-emerald-200',
+  perception:      'bg-teal-50 text-teal-600 border-teal-200',
+  acknowledgement: 'bg-blue-50 text-blue-600 border-blue-200',
+  expression:      'bg-purple-50 text-purple-600 border-purple-200',
+  action:          'bg-indigo-50 text-indigo-600 border-indigo-200',
+  feedback:        'bg-amber-50 text-amber-600 border-amber-200',
+  recovery:        'bg-gray-100 text-gray-500 border-gray-200',
 };
 
-const DOT_COLOR: Record<string, string> = {
-  trigger: 'bg-emerald-400',
-  perception: 'bg-teal-400',
-  acknowledgement: 'bg-blue-400',
-  expression: 'bg-purple-400',
-  action: 'bg-indigo-400',
-  feedback: 'bg-amber-400',
-  recovery: 'bg-gray-400',
+const TYPE_DOT: Record<string, string> = {
+  SN: 'bg-emerald-400', MP: 'bg-blue-400', PJ: 'bg-amber-400', SP: 'bg-rose-400',
 };
 
 export function BehaviorSequence({ sequence, database }: BehaviorSequenceProps) {
@@ -34,39 +28,67 @@ export function BehaviorSequence({ sequence, database }: BehaviorSequenceProps) 
     return [...database.SN, ...database.MP, ...database.PJ, ...database.SP].find(c => c.code === code)?.name || code;
   };
 
+  const getType = (code: string): string => {
+    if (!database) return '';
+    if (database.SN.some(c => c.code === code)) return 'SN';
+    if (database.MP.some(c => c.code === code)) return 'MP';
+    if (database.PJ.some(c => c.code === code)) return 'PJ';
+    if (database.SP.some(c => c.code === code)) return 'SP';
+    return '';
+  };
+
   const sorted = [...sequence].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-        <i className="fa-solid fa-list-ol text-blue-400"></i>Behavior Sequence
-      </p>
+    <div className="bg-white rounded-xl border border-gray-100">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+        <i className="fa-solid fa-arrow-right-long text-[10px] text-gray-400"></i>
+        <span className="text-xs font-bold text-gray-600">Behavior Sequence</span>
+        <span className="ml-auto text-[10px] text-gray-400">{sorted.length}단계</span>
+      </div>
 
-      <div className="space-y-2">
+      {/* Table header */}
+      <div className="grid grid-cols-[24px_80px_1fr_auto] gap-3 px-4 py-2 text-[10px] font-bold text-gray-300 uppercase tracking-wider border-b border-gray-50">
+        <span>#</span>
+        <span>코드</span>
+        <span>능력명 / 근거</span>
+        <span>타이밍</span>
+      </div>
+
+      {/* Rows */}
+      <div className="divide-y divide-gray-50">
         {sorted.map((step, idx) => {
-          const roleClass = ROLE_CONFIG[step.role] || 'bg-gray-100 text-gray-500';
-          const dotClass = DOT_COLOR[step.role] || 'bg-gray-400';
+          const rolePill = ROLE_PILL[step.role] || ROLE_PILL.recovery;
+          const typeDot = TYPE_DOT[getType(step.code)] || 'bg-gray-300';
           return (
-            <div key={idx} className="flex gap-3 items-start">
-              {/* Step number + dot */}
-              <div className="flex flex-col items-center gap-0.5 pt-1 shrink-0">
-                <div className={`w-5 h-5 rounded-full ${dotClass} flex items-center justify-center`}>
-                  <span className="text-white text-[9px] font-bold">{step.order}</span>
+            <div key={idx} className="grid grid-cols-[24px_80px_1fr_auto] gap-3 px-4 py-3 items-start hover:bg-gray-50/60 transition-colors">
+              {/* Step number */}
+              <span className="text-[11px] font-bold text-gray-300 mt-0.5">{String(step.order).padStart(2, '0')}</span>
+
+              {/* Code + type dot */}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${typeDot}`}></div>
+                <span className="font-mono text-[11px] font-bold text-gray-600 bg-gray-100 px-1.5 py-px rounded">{step.code}</span>
+              </div>
+
+              {/* Name + role + reason */}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                  <span className="text-[13px] font-semibold text-gray-800 leading-snug">{getName(step.code)}</span>
+                  <span className={`text-[10px] font-bold border px-1.5 py-px rounded-full shrink-0 ${rolePill}`}>{step.role}</span>
                 </div>
-                {idx < sorted.length - 1 && (
-                  <div className="w-px h-full min-h-[12px] bg-gray-100"></div>
+                {step.reason && (
+                  <p className="text-[11px] text-gray-400 leading-snug">{step.reason}</p>
                 )}
               </div>
 
-              {/* Content */}
-              <div className="flex-1 bg-gray-50 rounded-xl border border-gray-100 px-3 py-2.5 min-w-0">
-                <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide ${roleClass}`}>{step.role}</span>
-                  <span className="font-mono text-[10px] font-bold text-gray-600">{step.code}</span>
-                  <span className="text-[10px] text-gray-400 ml-auto">{step.timing}{step.duration != null ? ` · ${step.duration}ms` : ''}</span>
-                </div>
-                <p className="text-xs font-semibold text-gray-800 mb-0.5">{getName(step.code)}</p>
-                <p className="text-[10px] text-gray-400 leading-snug">{step.reason}</p>
+              {/* Timing */}
+              <div className="text-right shrink-0 mt-0.5">
+                <span className="text-[10px] text-gray-400 whitespace-nowrap">{step.timing}</span>
+                {step.duration != null && (
+                  <span className="block text-[10px] text-gray-300">{step.duration}ms</span>
+                )}
               </div>
             </div>
           );
