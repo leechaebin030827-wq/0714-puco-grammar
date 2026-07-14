@@ -6,68 +6,71 @@ interface BehaviorSequenceProps {
   database: CapabilityDatabase | null;
 }
 
+const ROLE_CONFIG: Record<string, string> = {
+  trigger:         'bg-emerald-100 text-emerald-700',
+  perception:      'bg-teal-100 text-teal-700',
+  acknowledgement: 'bg-blue-100 text-blue-700',
+  expression:      'bg-purple-100 text-purple-700',
+  action:          'bg-indigo-100 text-indigo-700',
+  feedback:        'bg-amber-100 text-amber-700',
+  recovery:        'bg-gray-100 text-gray-500',
+};
+
+const DOT_COLOR: Record<string, string> = {
+  trigger: 'bg-emerald-400',
+  perception: 'bg-teal-400',
+  acknowledgement: 'bg-blue-400',
+  expression: 'bg-purple-400',
+  action: 'bg-indigo-400',
+  feedback: 'bg-amber-400',
+  recovery: 'bg-gray-400',
+};
+
 export function BehaviorSequence({ sequence, database }: BehaviorSequenceProps) {
   if (!sequence || sequence.length === 0) return null;
 
-  const getCapabilityName = (code: string) => {
-    if (!database) return 'Unknown';
-    const all = [...database.SN, ...database.MP, ...database.PJ, ...database.SP];
-    return all.find(c => c.code === code)?.name || 'Unknown';
+  const getName = (code: string) => {
+    if (!database) return code;
+    return [...database.SN, ...database.MP, ...database.PJ, ...database.SP].find(c => c.code === code)?.name || code;
   };
 
-  const getRoleColor = (role: string) => {
-    switch(role) {
-      case 'trigger': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'perception': return 'bg-teal-100 text-teal-700 border-teal-200';
-      case 'acknowledgement': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'expression': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'action': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
-      case 'feedback': return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'recovery': return 'bg-gray-100 text-gray-700 border-gray-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
+  const sorted = [...sequence].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
-        <i className="fa-solid fa-list-ol text-blue-500 mr-2"></i>
-        Behavior Sequence
-      </h3>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+        <i className="fa-solid fa-list-ol text-blue-400"></i>Behavior Sequence
+      </p>
 
-      <div className="relative border-l-2 border-gray-100 ml-4 space-y-8 pb-4">
-        {sequence.sort((a, b) => a.order - b.order).map((step, idx) => (
-          <div key={idx} className="relative pl-6">
-            <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow-sm"></div>
-            
-            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 hover:shadow-md transition-shadow">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 font-mono font-bold text-sm">
-                    {String(step.order).padStart(2, '0')}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold border ${getRoleColor(step.role)} uppercase tracking-wider`}>
-                    {step.role}
-                  </span>
+      <div className="space-y-2">
+        {sorted.map((step, idx) => {
+          const roleClass = ROLE_CONFIG[step.role] || 'bg-gray-100 text-gray-500';
+          const dotClass = DOT_COLOR[step.role] || 'bg-gray-400';
+          return (
+            <div key={idx} className="flex gap-3 items-start">
+              {/* Step number + dot */}
+              <div className="flex flex-col items-center gap-0.5 pt-1 shrink-0">
+                <div className={`w-5 h-5 rounded-full ${dotClass} flex items-center justify-center`}>
+                  <span className="text-white text-[9px] font-bold">{step.order}</span>
                 </div>
-                <div className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-200 flex items-center">
-                  <i className="fa-regular fa-clock mr-1.5"></i>
-                  {step.timing}
-                  {step.duration !== null && <span className="ml-2 pl-2 border-l border-gray-300">{step.duration}ms</span>}
-                </div>
+                {idx < sorted.length - 1 && (
+                  <div className="w-px h-full min-h-[12px] bg-gray-100"></div>
+                )}
               </div>
 
-              <h4 className="font-bold text-gray-800 text-base mb-1">
-                <span className="text-blue-600 mr-2 font-mono">{step.code}</span>
-                {getCapabilityName(step.code)}
-              </h4>
-              
-              <p className="text-sm text-gray-600 mt-2 bg-white p-3 rounded-lg border border-gray-100">
-                {step.reason}
-              </p>
+              {/* Content */}
+              <div className="flex-1 bg-gray-50 rounded-xl border border-gray-100 px-3 py-2.5 min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide ${roleClass}`}>{step.role}</span>
+                  <span className="font-mono text-[10px] font-bold text-gray-600">{step.code}</span>
+                  <span className="text-[10px] text-gray-400 ml-auto">{step.timing}{step.duration != null ? ` · ${step.duration}ms` : ''}</span>
+                </div>
+                <p className="text-xs font-semibold text-gray-800 mb-0.5">{getName(step.code)}</p>
+                <p className="text-[10px] text-gray-400 leading-snug">{step.reason}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
