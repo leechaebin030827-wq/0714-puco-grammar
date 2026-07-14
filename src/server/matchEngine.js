@@ -105,7 +105,7 @@ export async function executeMatch(input, settings, database, apiKey) {
 
   while (retries < 3 && !success) {
     try {
-      const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json'
