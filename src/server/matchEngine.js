@@ -105,27 +105,30 @@ export async function executeMatch(input, settings, database, apiKey) {
 
   while (retries < 3 && !success) {
     try {
-      const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
           'content-type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 1500,
-          system: sysPrompt,
-          messages: messages
+          system_instruction: {
+            parts: { text: sysPrompt }
+          },
+          contents: [{
+            parts: [{ text: `Analyze the following scenario and generate a Behavior Grammar JSON:\n${combinedInput}` }]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
         })
       });
 
       if (!apiResponse.ok) {
-        throw new Error(`API status ${apiResponse.status}`);
+        throw new Error(`Gemini API status ${apiResponse.status}`);
       }
 
       const data = await apiResponse.json();
-      const replyText = data.content[0].text.trim();
+      const replyText = data.candidates[0].content.parts[0].text.trim();
 
       try {
         const cleanedText = replyText.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
@@ -138,11 +141,6 @@ export async function executeMatch(input, settings, database, apiKey) {
           throw new Error("Missing required Behavior Grammar fields");
         }
       } catch (jsonErr) {
-        messages.push({ role: 'assistant', content: replyText });
-        messages.push({
-          role: 'user',
-          content: "The response was not valid JSON or missing required fields. Output ONLY a valid JSON object matching the schema."
-        });
         retries++;
       }
     } catch (err) {

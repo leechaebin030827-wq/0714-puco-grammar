@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   try {
     const result = await executeMatch(normalizedInput, settings, dbToUse, apiKey);

@@ -32,27 +32,30 @@ Output strictly a single JSON object matching this schema:
 }`;
 
   try {
-    const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
         'content-type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 300,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: `Analyze this text in Korean: "${text.trim()}"` }]
+        system_instruction: {
+          parts: { text: systemPrompt }
+        },
+        contents: [{
+          parts: [{ text: `Analyze this text in Korean: "${text.trim()}"` }]
+        }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
       })
     });
 
     if (!apiResponse.ok) {
-      throw new Error(`Anthropic API status ${apiResponse.status}`);
+      throw new Error(`Gemini API status ${apiResponse.status}`);
     }
 
     const data = await apiResponse.json();
-    const replyText = data.content[0].text.trim();
+    const replyText = data.candidates[0].content.parts[0].text.trim();
     const cleanedText = replyText.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
     
     return JSON.parse(cleanedText);

@@ -55,7 +55,7 @@ async function startServer() {
       return res.status(400).json({ error: "입력 텍스트가 없습니다." });
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     try {
       const analysis = await analyzeInput(text, apiKey);
       res.status(200).json({ success: true, analysis });
@@ -94,7 +94,7 @@ async function startServer() {
       }
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     try {
       const result = await executeMatch(normalizedInput, settings, dbToUse, apiKey);

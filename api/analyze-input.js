@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "입력 텍스트가 없습니다." });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   try {
     const analysis = await analyzeInput(text, apiKey);
