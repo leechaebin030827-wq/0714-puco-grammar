@@ -55,7 +55,7 @@ export default function App() {
   };
 
   const handleExportPNG = async () => {
-    const el = document.getElementById('grammar-result-area');
+    const el = document.getElementById('app-container') || document.body;
     if (!el) return;
     try {
       // Wait for all fonts (like Google Fonts, Font Awesome) to load completely before capturing
@@ -110,7 +110,7 @@ export default function App() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] font-sans">
+    <div id="app-container" className="min-h-screen bg-[#f5f5f7] font-sans">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/60 sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -122,7 +122,7 @@ export default function App() {
               <span className="text-xs text-gray-400 font-medium">Behavior Grammar</span>
             </div>
           </div>
-          <nav className="flex items-center gap-0.5">
+          <nav className="flex items-center gap-0.5" data-html2canvas-ignore>
             {tabs.map(tab => (
               <button
                 key={tab.id}
@@ -136,6 +136,14 @@ export default function App() {
                 <i className={`fa-solid ${tab.icon} mr-1.5`}></i>{tab.label}
               </button>
             ))}
+            <div className="w-px h-4 bg-gray-200 mx-2"></div>
+            <button
+              onClick={handleExportPNG}
+              title="전체 페이지 캡쳐"
+              className="w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center text-xs transition-all"
+            >
+              <i className="fa-solid fa-camera"></i>
+            </button>
           </nav>
         </div>
       </header>
@@ -157,10 +165,6 @@ export default function App() {
                     <button onClick={handleSaveToHistory} title="저장"
                       className="w-8 h-8 rounded-xl bg-gray-50 border border-gray-200 text-gray-400 hover:text-green-600 hover:bg-green-50 hover:border-green-200 flex items-center justify-center text-xs transition-all">
                       <i className="fa-solid fa-bookmark"></i>
-                    </button>
-                    <button onClick={handleExportPNG} title="PNG 내보내기"
-                      className="w-8 h-8 rounded-xl bg-gray-50 border border-gray-200 text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 flex items-center justify-center text-xs transition-all">
-                      <i className="fa-solid fa-camera"></i>
                     </button>
                   </div>
                 </div>
