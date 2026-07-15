@@ -94,8 +94,8 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
         
         {/* API Status Badge */}
         {apiStatus && (
-          <span className={`text-[10px] font-bold border px-2 py-0.5 rounded-full flex items-center gap-1 ${getApiStatusBadge()}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${
+          <span className={`text-[10px] font-bold border px-2 py-0.5 rounded-full inline-flex items-center gap-1 leading-none ${getApiStatusBadge()}`}>
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
               apiStatus.status === 'configured' ? 'bg-green-500' :
               apiStatus.status === 'rate_limited' ? 'bg-amber-500' : 'bg-red-500'
             }`}></span>
@@ -129,19 +129,19 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
         {/* Check items */}
         <div className="flex items-center gap-3">
           {analyzing ? (
-            <span className="text-[11px] text-blue-400 flex items-center gap-1">
-              <i className="fa-solid fa-circle-notch fa-spin"></i> 분석 중
+            <span className="text-[11px] text-blue-400 inline-flex items-center gap-1 leading-none">
+              <i className="fa-solid fa-circle-notch fa-spin shrink-0"></i> 분석 중
             </span>
           ) : analyzeError ? (
-            <span className="text-[11px] text-orange-400 flex items-center gap-1">
-              <i className="fa-solid fa-triangle-exclamation"></i> 분석 실패
+            <span className="text-[11px] text-orange-400 inline-flex items-center gap-1 leading-none">
+              <i className="fa-solid fa-triangle-exclamation shrink-0"></i> 분석 실패
             </span>
           ) : (
             checks.map(c => {
               const s = getStatus(c.key);
               return (
-                <span key={c.key} className={`text-[11px] flex items-center gap-1 ${s.textClass}`}>
-                  <i className={`fa-solid ${s.icon} text-[9px]`}></i>
+                <span key={c.key} className={`text-[11px] inline-flex items-center gap-1 leading-none ${s.textClass}`}>
+                  <i className={`fa-solid ${s.icon} text-[9px] shrink-0`}></i>
                   {c.label}
                 </span>
               );
