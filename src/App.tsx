@@ -67,11 +67,15 @@ export default function App() {
         backgroundColor: '#f5f5f7',
         logging: false,
         useCORS: true,
+        scrollX: -window.scrollX,
+        scrollY: -window.scrollY,
+        windowWidth: document.documentElement.offsetWidth,
+        windowHeight: document.documentElement.scrollHeight,
       });
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
-      a.download = `PUCO_Grammar_${Date.now()}.png`;
+      a.download = `PUCO_Page_${Date.now()}.png`;
       a.click();
     } catch (e) {
       console.error(e);
