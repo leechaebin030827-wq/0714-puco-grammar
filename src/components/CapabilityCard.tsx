@@ -15,15 +15,6 @@ const TYPE_CONFIG = {
   SP: { icon: 'fa-volume-high', accent: 'text-rose-500',    code: 'text-rose-700 bg-rose-50'       },
 };
 
-const ROLE_COLORS: Record<string, string> = {
-  trigger:         'text-emerald-600',
-  perception:      'text-teal-600',
-  acknowledgement: 'text-blue-600',
-  expression:      'text-purple-600',
-  action:          'text-indigo-600',
-  feedback:        'text-amber-600',
-  recovery:        'text-gray-400',
-};
 
 export function CapabilityCard({ title, type, items, sequence }: CapabilityCardProps) {
   const cfg = TYPE_CONFIG[type];
@@ -41,7 +32,10 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
       <div className="divide-y divide-gray-50 flex-1 flex flex-col">
         {items.length > 0 ? items.map((item, idx) => {
           const seqInfo = sequence.find(s => s.code === item.code);
-          const roleColor = seqInfo ? (ROLE_COLORS[seqInfo.role] || 'text-gray-400') : '';
+          const roleColor = type === 'SN' ? 'text-emerald-600'
+                          : type === 'MP' ? 'text-blue-600'
+                          : type === 'PJ' ? 'text-amber-600'
+                          : 'text-rose-600';
           return (
             <div key={item.code} className={`px-5 py-4 flex flex-col ${idx === items.length - 1 ? 'flex-1' : ''}`}>
               {/* Code + Role */}
