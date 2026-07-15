@@ -164,6 +164,12 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
           {loading ? <><i className="fa-solid fa-circle-notch fa-spin mr-1.5"></i>생성 중</> : <><i className="fa-solid fa-bolt mr-1.5"></i>생성하기</>}
         </button>
       </div>
+
+      {/* Accuracy Helper Info */}
+      <div className="flex items-center gap-1.5 pt-2 border-t border-gray-50 text-[10px] text-gray-400">
+        <i className="fa-solid fa-circle-info text-blue-400/80"></i>
+        <span>세 조건(상황, 현재 단계, 상호작용)을 충족하여 자세히 적어주실수록 분석 정확도가 높아집니다.</span>
+      </div>
     </div>
   );
 }
