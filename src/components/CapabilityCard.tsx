@@ -29,7 +29,7 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
   const cfg = TYPE_CONFIG[type];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full min-h-[250px]">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full min-h-[200px]">
       {/* Header */}
       <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100">
         <i className={`fa-solid ${cfg.icon} text-xs ${cfg.accent}`}></i>
