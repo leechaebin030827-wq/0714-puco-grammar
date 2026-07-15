@@ -58,13 +58,25 @@ export default function App() {
     const el = document.getElementById('grammar-result-area');
     if (!el) return;
     try {
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#f5f5f7', logging: false });
+      // Wait for all fonts (like Google Fonts, Font Awesome) to load completely before capturing
+      if (document.fonts) {
+        await document.fonts.ready;
+      }
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        backgroundColor: '#f5f5f7',
+        logging: false,
+        useCORS: true,
+      });
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
       a.download = `PUCO_Grammar_${Date.now()}.png`;
       a.click();
-    } catch { alert("PNG 내보내기 실패"); }
+    } catch (e) {
+      console.error(e);
+      alert("PNG 내보내기 실패");
+    }
   };
 
   const handleSaveToHistory = () => {

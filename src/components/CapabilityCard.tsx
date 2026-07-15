@@ -29,7 +29,7 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
   const cfg = TYPE_CONFIG[type];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100">
         <i className={`fa-solid ${cfg.icon} text-xs ${cfg.accent}`}></i>
@@ -39,11 +39,11 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
 
       {/* Items */}
       <div className="divide-y divide-gray-50 flex-1 flex flex-col">
-        {items.length > 0 ? items.map(item => {
+        {items.length > 0 ? items.map((item, idx) => {
           const seqInfo = sequence.find(s => s.code === item.code);
           const roleColor = seqInfo ? (ROLE_COLORS[seqInfo.role] || 'text-gray-400') : '';
           return (
-            <div key={item.code} className="px-5 py-4">
+            <div key={item.code} className={`px-5 py-4 flex flex-col ${idx === items.length - 1 ? 'flex-1' : ''}`}>
               {/* Code + Role */}
               <div className="flex items-center gap-2 mb-2">
                 <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg ${cfg.code}`}>
@@ -63,7 +63,7 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
               )}
               {/* Reason */}
               {seqInfo?.reason && (
-                <p className="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-50 leading-snug">
+                <p className="text-[11px] text-gray-500 mt-auto pt-2 border-t border-gray-50 leading-snug">
                   {seqInfo.reason}
                 </p>
               )}
