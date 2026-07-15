@@ -103,9 +103,9 @@ export default function App() {
   );
 
   const tabs = [
-    { id: 'console', icon: 'fa-wand-magic-sparkles', label: '콘솔' },
-    { id: 'database', icon: 'fa-database', label: 'DB' },
-    { id: 'history', icon: 'fa-clock-rotate-left', label: '히스토리' },
+    { id: 'console', icon: 'fa-wand-magic-sparkles', label: '검색' },
+    { id: 'database', icon: 'fa-database', label: '데이터베이스' },
+    { id: 'history', icon: 'fa-clock-rotate-left', label: '저장 목록' },
     { id: 'settings', icon: 'fa-gear', label: '설정' },
   ] as const;
 
