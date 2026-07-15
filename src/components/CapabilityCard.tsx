@@ -63,9 +63,11 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
               )}
               {/* Reason */}
               {seqInfo?.reason && (
-                <p className="text-[11px] text-gray-500 mt-auto pt-1 mt-8 border-t border-gray-100 leading-snug">
-                  {seqInfo.reason}
-                </p>
+                <div className="mt-auto pt-8">
+                  <p className="text-[11px] text-gray-500 pt-1 border-t border-gray-200 leading-snug">
+                    {seqInfo.reason}
+                  </p>
+                </div>
               )}
             </div>
           );
