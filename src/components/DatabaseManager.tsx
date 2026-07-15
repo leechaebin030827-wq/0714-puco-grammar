@@ -133,31 +133,38 @@ export function DatabaseManager({ database, onSave }: DatabaseManagerProps) {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="w-full text-left table-fixed">
+          <colgroup>
+            <col style={{ width: '90px' }} />   {/* 코드 */}
+            <col style={{ width: '52px' }} />   {/* 활성 */}
+            <col style={{ width: '110px' }} />  {/* 카테고리 */}
+            <col style={{ width: '30%' }} />    {/* 이름 */}
+            <col />                             {/* 설명 – 나머지 */}
+          </colgroup>
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="px-5 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">코드</th>
-              <th className="px-3 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">활성</th>
-              <th className="px-3 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">카테고리</th>
-              <th className="px-3 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">이름</th>
-              <th className="px-3 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-full">설명</th>
+              <th className="px-5 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">코드</th>
+              <th className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">활성</th>
+              <th className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">카테고리</th>
+              <th className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">이름</th>
+              <th className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">설명</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {filteredItems.map(item => (
               <tr key={item.code} className="hover:bg-gray-50/60 transition-colors">
                 {/* Code */}
-                <td className="px-5 py-3">
-                  <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg ${getCodeColor(item.code)}`}>
+                <td className="px-5 py-2.5">
+                  <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap ${getCodeColor(item.code)}`}>
                     {item.code}
                   </span>
                 </td>
                 {/* Toggle */}
-                <td className="px-3 py-3">
+                <td className="px-3 py-2.5">
                   <button
                     onClick={() => toggleEnabled(item.code)}
                     disabled={saving}
-                    className={`w-8 h-4.5 h-[18px] rounded-full relative transition-colors ${
+                    className={`w-8 h-[18px] rounded-full relative transition-colors ${
                       item.enabled !== false ? 'bg-blue-500' : 'bg-gray-200'
                     }`}
                   >
@@ -167,11 +174,11 @@ export function DatabaseManager({ database, onSave }: DatabaseManagerProps) {
                   </button>
                 </td>
                 {/* Category */}
-                <td className="px-3 py-3 text-[11px] text-gray-400 whitespace-nowrap">{item.category}</td>
+                <td className="px-3 py-2.5 text-[11px] text-gray-400 truncate">{item.category}</td>
                 {/* Name */}
-                <td className="px-3 py-3 text-xs font-bold text-gray-700 whitespace-nowrap">{item.name}</td>
+                <td className="px-3 py-2.5 text-xs font-bold text-gray-700 truncate">{item.name}</td>
                 {/* Description */}
-                <td className="px-3 py-3 text-[11px] text-gray-400 leading-relaxed min-w-[180px]">{item.desc}</td>
+                <td className="px-3 py-2.5 text-[11px] text-gray-400 leading-relaxed">{item.desc}</td>
               </tr>
             ))}
             {filteredItems.length === 0 && (
