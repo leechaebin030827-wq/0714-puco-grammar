@@ -29,7 +29,7 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
   const cfg = TYPE_CONFIG[type];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full min-h-[200px]">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full min-h-[180px]">
       {/* Header */}
       <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100">
         <i className={`fa-solid ${cfg.icon} text-xs ${cfg.accent}`}></i>
@@ -64,7 +64,7 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
               {/* Reason */}
               {seqInfo?.reason && (
                 <div className="mt-auto pt-8">
-                  <p className="text-[11px] text-gray-500 pt-1 border-t border-gray-200 leading-snug">
+                  <p className="text-[11px] text-gray-500 pt-3 border-t border-gray-200 leading-snug">
                     {seqInfo.reason}
                   </p>
                 </div>
