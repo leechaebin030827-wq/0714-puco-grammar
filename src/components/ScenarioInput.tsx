@@ -113,7 +113,7 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
         className="w-full h-24 px-3.5 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none transition-all"
       />
 
-      <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1 border-b border-gray-50">
+      <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-3 border-b border-gray-50">
         <span className="text-[10px] font-bold text-gray-300 shrink-0 uppercase tracking-wider">추천:</span>
         {PRESET_SCENARIOS.map((p, i) => {
           const isSelected = text === p.text;
