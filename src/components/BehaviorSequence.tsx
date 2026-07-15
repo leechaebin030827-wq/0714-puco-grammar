@@ -69,11 +69,11 @@ export function BehaviorSequence({ sequence, database }: BehaviorSequenceProps) 
               <div className="flex-1 min-w-0 pb-0.5">
                 {/* Code + Role + Timing */}
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg ${codeColor}`}>
-                    {step.code}
+                  <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg inline-flex items-center leading-none ${codeColor}`}>
+                    <span className="capture-adjust-up">{step.code}</span>
                   </span>
-                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${roleColor}`}>
-                    {step.role}
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider inline-flex items-center leading-none ${roleColor}`}>
+                    <span className="capture-adjust-up">{step.role}</span>
                   </span>
                   <span className="ml-auto text-[10px] text-gray-300 whitespace-nowrap">
                     {step.timing}{step.duration != null ? ` · ${step.duration}ms` : ''}

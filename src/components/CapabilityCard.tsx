@@ -46,12 +46,12 @@ export function CapabilityCard({ title, type, items, sequence }: CapabilityCardP
             <div key={item.code} className={`px-5 py-4 flex flex-col ${idx === items.length - 1 ? 'flex-1' : ''}`}>
               {/* Code + Role */}
               <div className="flex items-center gap-2 mb-2">
-                <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg ${cfg.code}`}>
-                  {item.code}
+                <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg inline-flex items-center leading-none ${cfg.code}`}>
+                  <span className="capture-adjust-up">{item.code}</span>
                 </span>
                 {seqInfo && (
-                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${roleColor}`}>
-                    {seqInfo.role}
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider inline-flex items-center leading-none ${roleColor}`}>
+                    <span className="capture-adjust-up">{seqInfo.role}</span>
                   </span>
                 )}
               </div>

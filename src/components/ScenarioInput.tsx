@@ -95,11 +95,11 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
         {/* API Status Badge */}
         {apiStatus && (
           <span className={`text-[10px] font-bold border px-2 py-0.5 rounded-full inline-flex items-center gap-1 leading-none ${getApiStatusBadge()}`}>
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 capture-adjust-up ${
               apiStatus.status === 'configured' ? 'bg-green-500' :
               apiStatus.status === 'rate_limited' ? 'bg-amber-500' : 'bg-red-500'
             }`}></span>
-            {apiStatus.message}
+            <span className="capture-adjust-up">{apiStatus.message}</span>
           </span>
         )}
       </div>
@@ -150,8 +150,8 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
               const s = getStatus(c.key);
               return (
                 <span key={c.key} className={`text-[11px] inline-flex items-center gap-1 leading-none ${s.textClass}`}>
-                  <i className={`fa-solid ${s.icon} text-[9px] shrink-0`}></i>
-                  {c.label}
+                  <i className={`fa-solid ${s.icon} text-[9px] shrink-0 capture-adjust-up`}></i>
+                  <span className="capture-adjust-up">{c.label}</span>
                 </span>
               );
             })

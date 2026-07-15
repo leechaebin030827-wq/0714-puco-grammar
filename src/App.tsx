@@ -71,6 +71,14 @@ export default function App() {
         scrollY: -window.scrollY,
         windowWidth: document.documentElement.offsetWidth,
         windowHeight: document.documentElement.scrollHeight,
+        onclone: (clonedDoc) => {
+          // Adjust vertical alignments of texts/badges inside the canvas
+          const elements = clonedDoc.querySelectorAll('.capture-adjust-up');
+          elements.forEach((element: any) => {
+            element.style.position = 'relative';
+            element.style.top = '-1.5px';
+          });
+        }
       });
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
