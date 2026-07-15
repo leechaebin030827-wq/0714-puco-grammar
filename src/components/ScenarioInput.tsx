@@ -113,15 +113,24 @@ export function ScenarioInput({ onAnalyze, loading }: ScenarioInputProps) {
         className="w-full h-24 px-3.5 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none transition-all"
       />
 
-      {/* Presets list (moved down here) */}
       <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1 border-b border-gray-50">
         <span className="text-[10px] font-bold text-gray-300 shrink-0 uppercase tracking-wider">추천:</span>
-        {PRESET_SCENARIOS.map((p, i) => (
-          <button key={i} onClick={() => setText(p.text)}
-            className="whitespace-nowrap text-[11px] px-2.5 py-1 rounded-lg bg-gray-50 hover:bg-blue-50 text-gray-500 hover:text-blue-600 border border-gray-200 transition-colors font-medium">
-            {p.label}
-          </button>
-        ))}
+        {PRESET_SCENARIOS.map((p, i) => {
+          const isSelected = text === p.text;
+          return (
+            <button
+              key={i}
+              onClick={() => setText(p.text)}
+              className={`whitespace-nowrap text-[11px] px-2.5 py-1 rounded-lg border transition-all font-medium ${
+                isSelected
+                  ? 'bg-blue-50 text-blue-600 border-blue-200 shadow-sm'
+                  : 'bg-gray-50 hover:bg-blue-50 text-gray-500 hover:text-blue-600 border-gray-200'
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Status row + Button */}
